@@ -3,7 +3,9 @@ use raphael_translations::t;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    config::{AppConfig, CrafterConfig, QualitySource, QualityTarget, RecipeConfiguration},
+    config::{
+        AppConfig, CrafterConfig, QualitySource, QualityTarget, RecipeConfiguration, RecipeSource,
+    },
     macros::MacroViewConfig,
     saved_rotations::{SavedRotationsConfig, SavedRotationsData},
     storage,
@@ -98,6 +100,9 @@ pub struct SolverConfig {
     pub stellar_steady_hand_charges: u8,
 }
 
+/// Maximum number of entries kept in [`AppContext::recent_recipes`].
+pub const MAX_RECENT_RECIPES: usize = 10;
+
 pub struct AppContext {
     pub locale: Locale,
     pub app_config: AppConfig,
@@ -110,6 +115,8 @@ pub struct AppContext {
     pub macro_view_config: MacroViewConfig,
     pub saved_rotations_config: SavedRotationsConfig,
     pub saved_rotations_data: SavedRotationsData,
+    /// IDs of recently solved recipes, most recent first.
+    pub recent_recipes: Vec<u32>,
 }
 
 /// Keys under which each part of the [`AppContext`] is persisted.
@@ -126,6 +133,7 @@ pub mod keys {
     pub const MACRO_VIEW_CONFIG: &str = "MACRO_VIEW_CONFIG";
     pub const SAVED_ROTATIONS_CONFIG: &str = "SAVED_ROTATIONS_CONFIG";
     pub const SAVED_ROTATIONS: &str = "SAVED_ROTATIONS";
+    pub const RECENT_RECIPES: &str = "RECENT_RECIPES";
 }
 
 impl AppContext {
@@ -142,6 +150,7 @@ impl AppContext {
             macro_view_config: storage::load_or_default(keys::MACRO_VIEW_CONFIG),
             saved_rotations_config: storage::load_or_default(keys::SAVED_ROTATIONS_CONFIG),
             saved_rotations_data: storage::load_or_default(keys::SAVED_ROTATIONS),
+            recent_recipes: storage::load_or_default(keys::RECENT_RECIPES),
         }
     }
 
@@ -158,7 +167,8 @@ impl AppContext {
             .store(keys::SOLVER_CONFIG, &self.solver_config)
             .store(keys::MACRO_VIEW_CONFIG, &self.macro_view_config)
             .store(keys::SAVED_ROTATIONS_CONFIG, &self.saved_rotations_config)
-            .store(keys::SAVED_ROTATIONS, &self.saved_rotations_data);
+            .store(keys::SAVED_ROTATIONS, &self.saved_rotations_data)
+            .store(keys::RECENT_RECIPES, &self.recent_recipes);
         batch.commit();
     }
 
@@ -176,6 +186,27 @@ impl AppContext {
         solver_config.stellar_steady_hand_charges =
             solver_config.stellar_steady_hand_charges.min(max_charges);
         (solver_config != self.solver_config).then_some(solver_config)
+    }
+
+    /// Recent recipes with the current recipe moved to the front.
+    /// Returns `None` if the current recipe is custom or already the most recent one.
+    pub fn updated_recent_recipes(&self) -> Option<Vec<u32>> {
+        let RecipeSource::Normal { id, .. } = self.recipe_config.recipe_source else {
+            return None;
+        };
+        if self.recent_recipes.first() == Some(&id) {
+            return None;
+        }
+        let mut recent_recipes = Vec::with_capacity(MAX_RECENT_RECIPES);
+        recent_recipes.push(id);
+        recent_recipes.extend(
+            self.recent_recipes
+                .iter()
+                .copied()
+                .filter(|&recipe_id| recipe_id != id)
+                .take(MAX_RECENT_RECIPES - 1),
+        );
+        Some(recent_recipes)
     }
 
     pub fn initial_quality(&self) -> u16 {

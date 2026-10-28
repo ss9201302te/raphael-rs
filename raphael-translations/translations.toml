@@ -1407,3 +1407,25 @@ ko = '''우주 임무'''
 tc = '''探索任務'''
 version = "0.1.0"
 appearances = ["src/elements/panels/recipe_select.rs:471:48"]
+
+["8BdIxAepR5RvL2/oIX8e1g=="]
+en = '''Recently solved'''
+ja = '''最近の計算'''
+de = '''Zuletzt berechnet'''
+fr = '''Récemment résolus'''
+chs = '''最近求解'''
+tc = '''最近製作'''
+ko = '''최근 계산'''
+version = "0.1.0"
+appearances = []
+
+["pIURcS2307txIsA2caZblQ=="]
+en = '''Clear'''
+ja = '''クリア'''
+de = '''Leeren'''
+fr = '''Effacer'''
+chs = '''清除'''
+tc = '''清除'''
+ko = '''지우기'''
+version = "0.1.0"
+appearances = []

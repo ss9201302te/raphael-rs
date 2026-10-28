@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use dioxus::prelude::*;
 use raphael_data::{
-    CosmicExplorationZone, RLVLS, Recipe, RecipeSearchEntry, RecipeSearchQuery,
+    CosmicExplorationZone, RECIPE_TO_STELLAR_MISSION_LINKS, RECIPES, RLVLS, Recipe,
+    RecipeSearchEntry, RecipeSearchQuery,
     StellarMissionSearchEntry, StellarSearchQuery, find_recipes, find_stellar_missions,
     get_cosmic_exploration_zone_name, get_game_settings, get_job_name,
 };
@@ -149,6 +150,7 @@ fn RecipeSearch() -> Element {
                 Icon { kind: IconKind::Filter }
             }
         }
+        RecentRecipes {}
         match domain {
             RecipeSearchDomain::Recipes => rsx! {
                 RecipeList {}
@@ -156,6 +158,50 @@ fn RecipeSearch() -> Element {
             RecipeSearchDomain::StellarMissions => rsx! {
                 MissionList {}
             },
+        }
+    }
+}
+
+#[component]
+fn RecentRecipes() -> Element {
+    let mut app_context = use_app_context();
+    // Subscribe only to the values used for rendering, not to the whole app context.
+    let (locale, selected_id, recent_recipes) = use_memo(move || {
+        let ctx = app_context.read();
+        (ctx.locale, selected_recipe_id(&ctx), ctx.recent_recipes.clone())
+    })();
+    if recent_recipes.is_empty() {
+        return rsx! {};
+    }
+
+    rsx! {
+        div { class: "recent-recipes",
+            div { class: "recent-header",
+                span { {t!(locale, "Recently solved")} }
+                button {
+                    class: "btn small",
+                    onclick: move |_| app_context.write().recent_recipes.clear(),
+                    {t!(locale, "Clear")}
+                }
+            }
+            div { class: "list recent-list",
+                for recipe_id in recent_recipes {
+                    if let Some(&recipe) = RECIPES.get(recipe_id) {
+                        div {
+                            key: "{recipe_id}",
+                            class: if selected_id == Some(recipe_id) { "row selectable selected" } else { "row selectable" },
+                            onclick: move |_| select_normal_recipe(&mut app_context.write(), recipe_id, recipe),
+                            span { class: "row-job", {get_job_name(recipe.job_id, locale)} }
+                            GameDataName { source: NameSource::from(&recipe), locale }
+                            if let Some(&mission_id) = RECIPE_TO_STELLAR_MISSION_LINKS.get(recipe_id) {
+                                span { class: "row-effect",
+                                    GameDataName { source: NameSource::Mission { mission_id }, locale }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -1190,6 +1190,29 @@ pre {
     padding-left: calc(var(--panel-gap) + 7.5em + var(--element-gap));
 }
 
+.recent-recipes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.recent-list {
+    max-height: calc(var(--row-h) * 5.5);
+}
+
+.recent-list .row-effect {
+    min-width: 0;
+    max-width: 45%;
+}
+
 /* ---------- Custom recipe ---------- */
 
 .custom-recipe {

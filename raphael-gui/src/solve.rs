@@ -147,6 +147,11 @@ pub async fn solve(mut app_context: Signal<AppContext>, mut solve_state: Signal<
         thread_pool::ensure_initialized(num_threads).await;
     }
 
+    let recent_recipes = app_context.peek().updated_recent_recipes();
+    if let Some(recent_recipes) = recent_recipes {
+        app_context.write().recent_recipes = recent_recipes;
+    }
+
     let (mut game_settings, initial_quality, solver_config) = {
         let ctx = app_context.peek();
         (
